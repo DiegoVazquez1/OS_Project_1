@@ -13,7 +13,6 @@
 #include <pthread.h>
 #include "functions.h"
 
-#define SHM_NAME "/air_control_shm"
 int main() {
   // TODO 1: Call the function that creates the shared memory segment.
   MemoryCreate();
@@ -32,15 +31,11 @@ int main() {
   // the second position of the shared memory block.
   pid_t radio_pid = fork();
   if (radio_pid == 0) {
+    data[1] = getpid();
     execlp("./radio", "./radio", NULL);
     perror("execl failed");
     exit(1);
   }
-  else {
-    data[1] = radio_pid;
-  }
-
-
   // TODO 6: Launch 5 threads which will be the controllers; each thread will
   // execute the TakeOffsFunction().
   pthread_t controllers[5];
@@ -49,5 +44,16 @@ int main() {
       perror("pthread_create failed");
       exit(1);
     }
+  }
   
+  for (int i = 0; i < 5; i++) {
+        pthread_join(controllers[i], NULL);
+    }
+
+  printf(":::: End of operations :::: \n");
+  printf("Takeoffs: %d Planes: %d\n", total_takeoffs, planes);
+  waitpid(radio_pid, NULL, 0);
+  shm_unlink(SH_MEMORY_NAME);
+
+  return 0;
 }
